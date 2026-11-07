@@ -1,0 +1,35 @@
+Royalty statement summary (synthetic example)
+================================================
+Reserve rate: 20.0%
+Recoupable advance: $450.00
+
+Artist: Lena Orchid
+  Gross revenue:           $    504.50
+  Packaging deduction:     $     50.45
+  Distribution deduction:  $     25.23
+  Net for royalty:         $    428.82
+  Gross royalty:           $     80.12
+  Reserve withheld:        $     16.02
+  Payable (after recoup):  $      0.00
+
+Artist: Miles Hollow
+  Gross revenue:           $    884.00
+  Packaging deduction:     $     88.40
+  Distribution deduction:  $     44.20
+  Net for royalty:         $    751.40
+  Gross royalty:           $    113.13
+  Reserve withheld:        $     22.63
+  Payable (after recoup):  $      0.00
+
+Artist: The Silver Pines
+  Gross revenue:           $    196.00
+  Packaging deduction:     $     19.60
+  Distribution deduction:  $      9.80
+  Net for royalty:         $    166.60
+  Gross royalty:           $     32.16
+  Reserve withheld:        $      6.43
+  Payable (after recoup):  $      0.00
+
+Total paid to artists:     $      0.00
+Total applied to recoupment: $    180.33
+Advance balance remaining:   $    269.67

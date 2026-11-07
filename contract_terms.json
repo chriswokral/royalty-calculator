@@ -1,0 +1,17 @@
+{
+  "royalty_rates": {
+    "streaming": "0.18",
+    "download": "0.22",
+    "physical": "0.15"
+  },
+  "territory_multipliers": {
+    "US": "1.00",
+    "CA": "0.95",
+    "EU": "0.85",
+    "UK": "0.90"
+  },
+  "packaging_deduction_pct": "0.10",
+  "distribution_deduction_pct": "0.05",
+  "recoupable_advance": "450.00",
+  "reserve_pct": "0.20"
+}
