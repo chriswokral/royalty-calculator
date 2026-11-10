@@ -2,34 +2,39 @@ Royalty statement summary (synthetic example)
 ================================================
 Reserve rate: 20.0%
 Recoupable advance: $450.00
+Statement currency: USD
+FX rates to USD: CAD 0.73, EUR 1.08, GBP 1.27
 
 Artist: Lena Orchid
-  Gross revenue:           $    504.50
-  Packaging deduction:     $     50.45
-  Distribution deduction:  $     25.23
-  Net for royalty:         $    428.82
-  Gross royalty:           $     80.12
-  Reserve withheld:        $     16.02
+  Original revenue:        EUR 100.00; USD 504.50
+  Gross revenue:           $    612.50
+  Packaging deduction:     $     61.25
+  Distribution deduction:  $     30.63
+  Net for royalty:         $    520.62
+  Gross royalty:           $     94.17
+  Reserve withheld:        $     18.83
   Payable (after recoup):  $      0.00
 
 Artist: Miles Hollow
-  Gross revenue:           $    884.00
-  Packaging deduction:     $     88.40
-  Distribution deduction:  $     44.20
-  Net for royalty:         $    751.40
-  Gross royalty:           $    113.13
-  Reserve withheld:        $     22.63
+  Original revenue:        GBP 75.40; USD 884.00
+  Gross revenue:           $    979.76
+  Packaging deduction:     $     97.98
+  Distribution deduction:  $     48.99
+  Net for royalty:         $    832.79
+  Gross royalty:           $    129.25
+  Reserve withheld:        $     25.85
   Payable (after recoup):  $      0.00
 
 Artist: The Silver Pines
-  Gross revenue:           $    196.00
-  Packaging deduction:     $     19.60
-  Distribution deduction:  $      9.80
-  Net for royalty:         $    166.60
-  Gross royalty:           $     32.16
-  Reserve withheld:        $      6.43
+  Original revenue:        CAD 250.00; USD 196.00
+  Gross revenue:           $    378.50
+  Packaging deduction:     $     37.85
+  Distribution deduction:  $     18.93
+  Net for royalty:         $    321.72
+  Gross royalty:           $     54.26
+  Reserve withheld:        $     10.85
   Payable (after recoup):  $      0.00
 
 Total paid to artists:     $      0.00
-Total applied to recoupment: $    180.33
-Advance balance remaining:   $    269.67
+Total applied to recoupment: $    222.15
+Advance balance remaining:   $    227.85
