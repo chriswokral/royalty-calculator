@@ -1,4 +1,8 @@
-artist,gross_revenue,packaging_deduction,distribution_deduction,net_for_royalty,gross_royalty,reserve_withheld,payable_royalty,statement_currency,original_revenue,fx_converted_revenue
-Lena Orchid,612.50,61.25,30.63,520.62,94.17,18.83,0.00,USD,EUR 100.00; USD 504.50,108.00
-Miles Hollow,979.76,97.98,48.99,832.79,129.25,25.85,0.00,USD,GBP 75.40; USD 884.00,95.76
-The Silver Pines,378.50,37.85,18.93,321.72,54.26,10.85,0.00,USD,CAD 250.00; USD 196.00,182.50
+artist,gross_revenue,packaging_deduction,distribution_deduction,net_for_royalty,gross_royalty,reserve_withheld,payable_royalty,deal_id,advance_recouped,deal_advance_opening,deal_advance_closing,statement_currency,original_revenue,fx_converted_revenue
+Lena Orchid,612.50,61.25,30.63,520.62,94.17,18.83,0.00,deal-alpha,75.34,300.00,121.26,USD,EUR 100.00; USD 504.50,108.00
+Miles Hollow,979.76,97.98,48.99,832.79,129.25,25.85,0.00,deal-alpha,103.40,300.00,121.26,USD,GBP 75.40; USD 884.00,95.76
+The Silver Pines,378.50,37.85,18.93,321.72,54.26,10.85,13.41,deal-solo-pines,30.00,30.00,0.00,USD,CAD 250.00; USD 196.00,182.50
+
+
+
+
