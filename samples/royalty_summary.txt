@@ -1,11 +1,22 @@
 Royalty statement summary (synthetic example)
 ================================================
 Reserve rate: 20.0%
-Recoupable advance: $450.00
 Statement currency: USD
+Per-artist advances (cross-collateralised by deal)
+  Deal deal-alpha (Lena Orchid, Miles Hollow):
+    Opening advance:       $    300.00
+    Recouped this period:  $    178.74
+    Closing advance:       $    121.26
+  Deal deal-solo-pines (The Silver Pines):
+    Opening advance:       $     30.00
+    Recouped this period:  $     30.00
+    Closing advance:       $      0.00
+
 FX rates to USD: CAD 0.73, EUR 1.08, GBP 1.27
 
 Artist: Lena Orchid
+  Advance deal:              deal-alpha
+  Advance recouped:        $     75.34
   Original revenue:        EUR 100.00; USD 504.50
   Gross revenue:           $    612.50
   Packaging deduction:     $     61.25
@@ -16,6 +27,8 @@ Artist: Lena Orchid
   Payable (after recoup):  $      0.00
 
 Artist: Miles Hollow
+  Advance deal:              deal-alpha
+  Advance recouped:        $    103.40
   Original revenue:        GBP 75.40; USD 884.00
   Gross revenue:           $    979.76
   Packaging deduction:     $     97.98
@@ -26,6 +39,8 @@ Artist: Miles Hollow
   Payable (after recoup):  $      0.00
 
 Artist: The Silver Pines
+  Advance deal:              deal-solo-pines
+  Advance recouped:        $     30.00
   Original revenue:        CAD 250.00; USD 196.00
   Gross revenue:           $    378.50
   Packaging deduction:     $     37.85
@@ -33,8 +48,56 @@ Artist: The Silver Pines
   Net for royalty:         $    321.72
   Gross royalty:           $     54.26
   Reserve withheld:        $     10.85
-  Payable (after recoup):  $      0.00
+  Payable (after recoup):  $     13.41
 
-Total paid to artists:     $      0.00
-Total applied to recoupment: $    222.15
-Advance balance remaining:   $    227.85
+Total cash payable:        $     13.41
+Total applied to recoupment: $    208.74
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
