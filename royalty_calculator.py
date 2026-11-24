@@ -18,6 +18,22 @@ def money(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+@dataclass(frozen=True)
+class AdvanceDeal:
+    deal_id: str
+    artists: list[str]
+    advance: Decimal
+
+
+@dataclass
+class DealRecoupResult:
+    deal_id: str
+    artists: list[str]
+    opening: Decimal
+    recouped: Decimal
+    closing: Decimal
+
+
 @dataclass
 class ContractTerms:
     royalty_rates: dict[str, Decimal]
@@ -28,9 +44,19 @@ class ContractTerms:
     reserve_pct: Decimal
     statement_currency: str = "USD"
     fx_rates: dict[str, Decimal] = field(default_factory=dict)
+    advances: list[AdvanceDeal] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ContractTerms:
+        advances: list[AdvanceDeal] = []
+        for deal in data.get("advances", []):
+            advances.append(
+                AdvanceDeal(
+                    deal_id=str(deal["deal_id"]).strip(),
+                    artists=[str(a).strip() for a in deal["artists"]],
+                    advance=Decimal(str(deal["advance"])),
+                )
+            )
         return cls(
             royalty_rates={k: Decimal(str(v)) for k, v in data["royalty_rates"].items()},
             territory_multipliers={
@@ -45,6 +71,7 @@ class ContractTerms:
                 k.strip().upper(): Decimal(str(v))
                 for k, v in data.get("fx_rates", {}).items()
             },
+            advances=advances,
         )
 
     def rate_to_statement(self, currency: str) -> Decimal | None:
@@ -65,6 +92,110 @@ class ArtistTotals:
     payable_royalty: Decimal = Decimal("0")
     original_revenue: dict[str, Decimal] = field(default_factory=dict)
     fx_converted_revenue: Decimal = Decimal("0")
+    deal_id: str = ""
+    advance_recouped: Decimal = Decimal("0")
+    deal_advance_opening: Decimal | None = None
+    deal_advance_closing: Decimal | None = None
+
+
+def validate_advances(
+    by_artist: dict[str, ArtistTotals], deals: list[AdvanceDeal]
+) -> None:
+    """Ensure each artist appears in at most one deal and every deal artist has sales."""
+    seen: dict[str, str] = {}
+    for deal in deals:
+        for artist in deal.artists:
+            if artist in seen:
+                raise ValueError(
+                    f"Artist {artist!r} appears in more than one advance deal "
+                    f"({seen[artist]!r} and {deal.deal_id!r})"
+                )
+            seen[artist] = deal.deal_id
+            if artist not in by_artist:
+                raise ValueError(
+                    f"Unknown artist {artist!r} in advance deal {deal.deal_id!r}: "
+                    "no sales lines for this artist"
+                )
+
+
+def attribute_recoupment_pro_rata(
+    payables: dict[str, Decimal], total_recoup: Decimal
+) -> dict[str, Decimal]:
+    """Split a deal-level recoupment across artists pro rata to pre-recoup payables.
+
+  Each share is rounded half-up to cents; any penny remainder is assigned one cent
+  at a time to artists in descending order of rounding remainder, then by name.
+    """
+    if total_recoup <= 0 or not payables:
+        return {artist: Decimal("0") for artist in payables}
+    pool = sum(payables.values())
+    if pool <= 0:
+        return {artist: Decimal("0") for artist in payables}
+
+    artists = sorted(payables.keys())
+    raw = {artist: payables[artist] / pool * total_recoup for artist in artists}
+    attributed = {artist: money(raw[artist]) for artist in artists}
+    diff = money(total_recoup - sum(attributed.values()))
+    pennies = int(diff / Decimal("0.01"))
+    if pennies == 0:
+        return attributed
+
+    step = Decimal("0.01")
+    if pennies < 0:
+        step = Decimal("-0.01")
+        pennies = -pennies
+    order = sorted(artists, key=lambda a: (raw[a] - attributed[a], a), reverse=True)
+    for i in range(pennies):
+        artist = order[i % len(order)]
+        attributed[artist] = money(attributed[artist] + step)
+    return attributed
+
+
+def apply_deal_advances(
+    by_artist: dict[str, ArtistTotals], deals: list[AdvanceDeal]
+) -> tuple[Decimal, list[DealRecoupResult]]:
+    """Recoup per-deal advances from pooled payable royalties (cross-collateralised)."""
+    validate_advances(by_artist, deals)
+    deal_results: list[DealRecoupResult] = []
+    total_paid = Decimal("0")
+
+    for deal in deals:
+        payables = {
+            artist: by_artist[artist].payable_royalty for artist in deal.artists
+        }
+        pool = money(sum(payables.values()))
+        recouped = money(min(pool, deal.advance))
+        closing = money(deal.advance - recouped)
+        attributed = attribute_recoupment_pro_rata(payables, recouped)
+
+        for artist in deal.artists:
+            rec = attributed[artist]
+            cash = money(payables[artist] - rec)
+            t = by_artist[artist]
+            t.deal_id = deal.deal_id
+            t.advance_recouped = rec
+            t.deal_advance_opening = deal.advance
+            t.deal_advance_closing = closing
+            t.payable_royalty = cash
+            total_paid += cash
+
+        deal_results.append(
+            DealRecoupResult(
+                deal_id=deal.deal_id,
+                artists=list(deal.artists),
+                opening=deal.advance,
+                recouped=recouped,
+                closing=closing,
+            )
+        )
+
+    for artist, totals in by_artist.items():
+        if totals.deal_id:
+            continue
+        totals.advance_recouped = Decimal("0")
+        total_paid += totals.payable_royalty
+
+    return money(total_paid), deal_results
 
 
 def load_sales(path: Path) -> list[dict[str, str]]:
@@ -164,6 +295,7 @@ def apply_recoupment(
     for artist in sorted(by_artist.keys()):
         payable = by_artist[artist].payable_royalty
         if remaining <= 0:
+            by_artist[artist].advance_recouped = Decimal("0")
             total_paid += payable
             continue
         recoup = min(payable, remaining)
@@ -171,6 +303,7 @@ def apply_recoupment(
         remaining -= recoup
         total_recouped += recoup
         total_paid += paid
+        by_artist[artist].advance_recouped = money(recoup)
         by_artist[artist].payable_royalty = money(paid)
     return money(total_paid), money(total_recouped), money(remaining)
 
@@ -178,6 +311,12 @@ def apply_recoupment(
 def format_original_revenue(original: dict[str, Decimal]) -> str:
     """Per-currency revenue as entered, e.g. 'EUR 100.00; USD 504.50'."""
     return "; ".join(f"{c} {original[c]:.2f}" for c in sorted(original))
+
+
+def _deal_balance_cell(value: Decimal | None) -> str:
+    if value is None:
+        return ""
+    return f"{value:.2f}"
 
 
 def write_statement_csv(
@@ -192,6 +331,10 @@ def write_statement_csv(
         "gross_royalty",
         "reserve_withheld",
         "payable_royalty",
+        "deal_id",
+        "advance_recouped",
+        "deal_advance_opening",
+        "deal_advance_closing",
         "statement_currency",
         "original_revenue",
         "fx_converted_revenue",
@@ -211,6 +354,10 @@ def write_statement_csv(
                     "gross_royalty": f"{t.gross_royalty:.2f}",
                     "reserve_withheld": f"{t.reserve_withheld:.2f}",
                     "payable_royalty": f"{t.payable_royalty:.2f}",
+                    "deal_id": t.deal_id,
+                    "advance_recouped": f"{t.advance_recouped:.2f}",
+                    "deal_advance_opening": _deal_balance_cell(t.deal_advance_opening),
+                    "deal_advance_closing": _deal_balance_cell(t.deal_advance_closing),
                     "statement_currency": terms.statement_currency,
                     "original_revenue": format_original_revenue(t.original_revenue),
                     "fx_converted_revenue": f"{t.fx_converted_revenue:.2f}",
@@ -224,15 +371,25 @@ def format_summary(
     total_paid: Decimal,
     total_recouped: Decimal,
     advance_remaining: Decimal,
+    deal_results: list[DealRecoupResult] | None = None,
 ) -> str:
     cur = "$" if terms.statement_currency == "USD" else f"{terms.statement_currency} "
     lines = [
         "Royalty statement summary (synthetic example)",
         "=" * 48,
         f"Reserve rate: {terms.reserve_pct * 100:.1f}%",
-        f"Recoupable advance: {cur}{terms.recoupable_advance:.2f}",
         f"Statement currency: {terms.statement_currency}",
     ]
+    if deal_results:
+        lines.append("Per-artist advances (cross-collateralised by deal)")
+        for result in deal_results:
+            lines.append(f"  Deal {result.deal_id} ({', '.join(result.artists)}):")
+            lines.append(f"    Opening advance:       {cur}{result.opening:>10.2f}")
+            lines.append(f"    Recouped this period:  {cur}{result.recouped:>10.2f}")
+            lines.append(f"    Closing advance:       {cur}{result.closing:>10.2f}")
+        lines.append("")
+    else:
+        lines.append(f"Recoupable advance: {cur}{terms.recoupable_advance:.2f}")
     if terms.fx_rates:
         rates = ", ".join(f"{c} {terms.fx_rates[c]}" for c in sorted(terms.fx_rates))
         lines.append(f"FX rates to {terms.statement_currency}: {rates}")
@@ -240,6 +397,9 @@ def format_summary(
     for artist in sorted(by_artist.keys()):
         t = by_artist[artist]
         lines.append(f"Artist: {artist}")
+        if t.deal_id:
+            lines.append(f"  Advance deal:              {t.deal_id}")
+            lines.append(f"  Advance recouped:        {cur}{t.advance_recouped:>10.2f}")
         lines.append(f"  Original revenue:        {format_original_revenue(t.original_revenue)}")
         lines.append(f"  Gross revenue:           {cur}{t.gross_revenue:>10.2f}")
         lines.append(f"  Packaging deduction:     {cur}{t.packaging_deduction:>10.2f}")
@@ -249,9 +409,14 @@ def format_summary(
         lines.append(f"  Reserve withheld:        {cur}{t.reserve_withheld:>10.2f}")
         lines.append(f"  Payable (after recoup):  {cur}{t.payable_royalty:>10.2f}")
         lines.append("")
-    lines.append(f"Total paid to artists:     {cur}{total_paid:>10.2f}")
-    lines.append(f"Total applied to recoupment: {cur}{total_recouped:>10.2f}")
-    lines.append(f"Advance balance remaining:   {cur}{advance_remaining:>10.2f}")
+    if deal_results:
+        total_recouped = money(sum(r.recouped for r in deal_results))
+        lines.append(f"Total cash payable:        {cur}{total_paid:>10.2f}")
+        lines.append(f"Total applied to recoupment: {cur}{total_recouped:>10.2f}")
+    else:
+        lines.append(f"Total paid to artists:     {cur}{total_paid:>10.2f}")
+        lines.append(f"Total applied to recoupment: {cur}{total_recouped:>10.2f}")
+        lines.append(f"Advance balance remaining:   {cur}{advance_remaining:>10.2f}")
     return "\n".join(lines) + "\n"
 
 
@@ -260,12 +425,24 @@ def run(sales_path: Path, contract_path: Path, statement_path: Path, summary_pat
         terms = ContractTerms.from_dict(json.load(f))
     sales = load_sales(sales_path)
     by_artist = aggregate_by_artist(sales, terms)
-    total_paid, total_recouped, advance_remaining = apply_recoupment(
-        by_artist, terms.recoupable_advance
-    )
+    deal_results: list[DealRecoupResult] | None = None
+    total_recouped = Decimal("0")
+    advance_remaining = Decimal("0")
+    if terms.advances:
+        total_paid, deal_results = apply_deal_advances(by_artist, terms.advances)
+        total_recouped = money(sum(r.recouped for r in deal_results))
+    else:
+        total_paid, total_recouped, advance_remaining = apply_recoupment(
+            by_artist, terms.recoupable_advance
+        )
     write_statement_csv(statement_path, by_artist, terms)
     summary = format_summary(
-        by_artist, terms, total_paid, total_recouped, advance_remaining
+        by_artist,
+        terms,
+        total_paid,
+        total_recouped,
+        advance_remaining,
+        deal_results=deal_results,
     )
     summary_path.write_text(summary, encoding="utf-8")
     return summary
