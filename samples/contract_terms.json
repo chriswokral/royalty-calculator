@@ -12,12 +12,57 @@
   },
   "packaging_deduction_pct": "0.10",
   "distribution_deduction_pct": "0.05",
-  "recoupable_advance": "450.00",
+  "recoupable_advance": "0",
   "reserve_pct": "0.20",
   "statement_currency": "USD",
   "fx_rates": {
     "EUR": "1.08",
     "GBP": "1.27",
     "CAD": "0.73"
-  }
+  },
+  "advances": [
+    {
+      "deal_id": "deal-alpha",
+      "artists": ["Lena Orchid", "Miles Hollow"],
+      "advance": "300.00"
+    },
+    {
+      "deal_id": "deal-solo-pines",
+      "artists": ["The Silver Pines"],
+      "advance": "30.00"
+    }
+  ]
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
